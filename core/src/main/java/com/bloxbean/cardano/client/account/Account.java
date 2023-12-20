@@ -35,6 +35,8 @@ public class Account {
     private String stakeAddress;
     private Network network;
     private HdKeyPair hdKeyPair;
+    private HdKeyPair changeHdKeyPair;
+    private HdKeyPair stakeHdKeyPair;
 
     @JsonIgnore
     private DerivationPath derivationPath;
@@ -422,27 +424,29 @@ public class Account {
     }
 
     private HdKeyPair getChangeKeyPair() {
-        HdKeyPair hdKeyPair;
-        DerivationPath internalDerivationPath = DerivationPath.createInternalAddressDerivationPathForAccount(derivationPath.getAccount().getValue());
-        if (mnemonic == null || mnemonic.trim().length() == 0) {
-            hdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, internalDerivationPath);
-        } else {
-            hdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, internalDerivationPath);
+        if (changeHdKeyPair == null) {
+            DerivationPath internalDerivationPath = DerivationPath.createInternalAddressDerivationPathForAccount(derivationPath.getAccount().getValue());
+            if (mnemonic == null || mnemonic.trim().isEmpty()) {
+                changeHdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, internalDerivationPath);
+            } else {
+                changeHdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, internalDerivationPath);
+            }
         }
 
-        return hdKeyPair;
+        return changeHdKeyPair;
     }
 
     private HdKeyPair getStakeKeyPair() {
-        HdKeyPair hdKeyPair;
-        DerivationPath stakeDerivationPath = DerivationPath.createStakeAddressDerivationPathForAccount(derivationPath.getAccount().getValue());
-        if (mnemonic == null || mnemonic.trim().length() == 0) {
-            hdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, stakeDerivationPath);
-        } else {
-            hdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, stakeDerivationPath);
+        if (stakeHdKeyPair == null) {
+            DerivationPath stakeDerivationPath = DerivationPath.createStakeAddressDerivationPathForAccount(derivationPath.getAccount().getValue());
+            if (mnemonic == null || mnemonic.trim().isEmpty()) {
+                stakeHdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, stakeDerivationPath);
+            } else {
+                stakeHdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, stakeDerivationPath);
+            }
         }
 
-        return hdKeyPair;
+        return stakeHdKeyPair;
     }
 
     @Override
