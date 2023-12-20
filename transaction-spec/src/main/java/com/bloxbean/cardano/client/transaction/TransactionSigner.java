@@ -17,11 +17,13 @@ import com.bloxbean.cardano.client.transaction.spec.Transaction;
 import com.bloxbean.cardano.client.transaction.spec.TransactionBody;
 import com.bloxbean.cardano.client.transaction.spec.TransactionWitnessSet;
 import com.bloxbean.cardano.client.transaction.spec.VkeyWitness;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 
 import static com.bloxbean.cardano.client.transaction.util.TransactionUtil.createCopy;
 
+@Slf4j
 public enum TransactionSigner {
     INSTANCE();
 
@@ -30,24 +32,39 @@ public enum TransactionSigner {
     }
 
     public Transaction sign(Transaction transaction, HdKeyPair hdKeyPair) {
-        Transaction cloneTxn = createCopy(transaction);
+        return sign(transaction, hdKeyPair, true);
+    }
+
+    public Transaction sign(Transaction transaction, HdKeyPair hdKeyPair, boolean safe) {
+
+//        long startTime = System.currentTimeMillis();
+
+        Transaction cloneTxn;
+        if (safe) {
+            cloneTxn = createCopy(transaction);
+        } else {
+            cloneTxn = transaction;
+        }
         TransactionBody transactionBody = cloneTxn.getBody();
 
-        byte[] txnBody = null;
+//        log.info("Tx body in {}ms", (System.currentTimeMillis() - startTime));
+
+        byte[] txnBody;
         try {
             txnBody = CborSerializationUtil.serialize(transactionBody.serialize());
-        } catch (CborException e) {
-            throw new CborRuntimeException("Error in Cbor serialization", e);
-        } catch (AddressExcepion e) {
-            throw new CborRuntimeException("Error in Cbor serialization", e);
-        } catch (CborSerializationException e) {
+        } catch (CborException | AddressExcepion | CborSerializationException e) {
             throw new CborRuntimeException("Error in Cbor serialization", e);
         }
 
+//        log.info("CBOR serde in {}ms", (System.currentTimeMillis() - startTime));
+
         byte[] txnBodyHash = Blake2bUtil.blake2bHash256(txnBody);
+
+//        log.info("CBOR blake2b {}ms", (System.currentTimeMillis() - startTime));
 
         SigningProvider signingProvider = CryptoConfiguration.INSTANCE.getSigningProvider();
         byte[] signature = signingProvider.signExtended(txnBodyHash, hdKeyPair.getPrivateKey().getKeyData(), hdKeyPair.getPublicKey().getKeyData());
+//        log.info("Actual Signature {}ms", (System.currentTimeMillis() - startTime));
 
         VkeyWitness vkeyWitness = VkeyWitness.builder()
                 .vkey(hdKeyPair.getPublicKey().getKeyData())

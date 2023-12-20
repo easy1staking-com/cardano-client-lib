@@ -34,6 +34,7 @@ public class Account {
     private String enterpriseAddress;
     private String stakeAddress;
     private Network network;
+    private HdKeyPair hdKeyPair;
 
     @JsonIgnore
     private DerivationPath derivationPath;
@@ -155,15 +156,15 @@ public class Account {
      *
      * @param network
      * @param accountKey is a private key of 96 bytes or 128 bytes (with pubkey and chaincode) at account level
-     * @param account account
-     * @param index address index
+     * @param account    account
+     * @param index      address index
      */
     public Account(Network network, byte[] accountKey, int account, int index) {
         this.network = network;
         this.mnemonic = null;
         if (accountKey.length == 96)
             this.accountKey = accountKey;
-        else if(accountKey.length == 128){
+        else if (accountKey.length == 128) {
             byte[] key = new byte[96];
             System.arraycopy(accountKey, 0, key, 0, 64);
             System.arraycopy(accountKey, 96, key, 64, 32);
@@ -279,6 +280,7 @@ public class Account {
 
     /**
      * Get private key in bech32 format
+     *
      * @return
      */
     @JsonIgnore
@@ -289,6 +291,7 @@ public class Account {
 
     /**
      * Get private key bytes
+     *
      * @return
      */
     @JsonIgnore
@@ -299,6 +302,7 @@ public class Account {
 
     /**
      * Get public key bytes
+     *
      * @return
      */
     @JsonIgnore
@@ -308,6 +312,7 @@ public class Account {
 
     /**
      * Get Hd key pair
+     *
      * @return
      */
     @JsonIgnore
@@ -317,6 +322,7 @@ public class Account {
 
     /**
      * Get Hd key pair for stake address
+     *
      * @return
      */
     @JsonIgnore
@@ -326,6 +332,7 @@ public class Account {
 
     /**
      * Get Hd key pair for change address
+     *
      * @return
      */
     @JsonIgnore
@@ -334,10 +341,10 @@ public class Account {
     }
 
     /**
-     * @deprecated Use {@link Account#sign(Transaction)}
      * @param txnHex
      * @return
      * @throws CborSerializationException
+     * @deprecated Use {@link Account#sign(Transaction)}
      */
     @Deprecated
     public String sign(String txnHex) throws CborSerializationException {
@@ -355,6 +362,7 @@ public class Account {
 
     /**
      * Sign a transaction object with this account
+     *
      * @param transaction
      * @return
      */
@@ -362,8 +370,13 @@ public class Account {
         return TransactionSigner.INSTANCE.sign(transaction, getHdKeyPair());
     }
 
+    public Transaction unsafeSign(Transaction transaction) {
+        return TransactionSigner.INSTANCE.sign(transaction, getHdKeyPair(), false);
+    }
+
     /**
      * Sign a transaction object with stake key
+     *
      * @param transaction
      * @return Signed Transaction
      */
@@ -398,12 +411,12 @@ public class Account {
     }
 
     private HdKeyPair getHdKeyPair() {
-        HdKeyPair hdKeyPair;
-        if (mnemonic == null || mnemonic.trim().length() == 0) {
-            hdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, derivationPath);
-        }
-        else {
-            hdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, derivationPath);
+        if (hdKeyPair == null) {
+            if (mnemonic == null || mnemonic.trim().isEmpty()) {
+                hdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, derivationPath);
+            } else {
+                hdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, derivationPath);
+            }
         }
         return hdKeyPair;
     }
@@ -413,8 +426,7 @@ public class Account {
         DerivationPath internalDerivationPath = DerivationPath.createInternalAddressDerivationPathForAccount(derivationPath.getAccount().getValue());
         if (mnemonic == null || mnemonic.trim().length() == 0) {
             hdKeyPair = new CIP1852().getKeyPairFromAccountKey(this.accountKey, internalDerivationPath);
-        }
-        else {
+        } else {
             hdKeyPair = new CIP1852().getKeyPairFromMnemonic(mnemonic, internalDerivationPath);
         }
 
